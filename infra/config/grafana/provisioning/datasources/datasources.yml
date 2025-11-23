@@ -1,0 +1,16 @@
+apiVersion: 1
+
+datasources:
+  - name: prometheus
+    uid: ef50vzkc6tn28e
+    type: prometheus
+    access: proxy
+    url: http://ops-prometheus:9090
+    isDefault: true
+    jsonData:
+      exemplarTraceIdDestinations: []
+      httpMethod: POST
+      pdcInjected: false
+      prometheusType: Prometheus
+      queryTimeout: 10s
+      timeInterval: 10s
