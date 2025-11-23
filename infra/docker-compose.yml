@@ -11,7 +11,30 @@ services:
       - './config/grafana/provisioning/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro'
       - './config/grafana/dashboards:/etc/grafana/dashboards:ro'
       - './data/grafana-storage:/var/lib/grafana'
-    networks: ['app-monitoring']
+    networks: ['ops-monitoring', 'ops-logging']
+    labels:
+      - loki_scope=infra
+  ops-loki:
+    image: grafana/loki:latest
+    container_name: ops-loki
+    ports:
+      - "9993:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks: ['ops-logging']
+    labels:
+      - loki_scope=infra
+  ops-promtail:
+    image: grafana/promtail:latest
+    container_name: ops-loki-promtail
+    volumes:
+      - './config/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro'
+      - '/var/lib/docker/containers:/var/lib/docker/containers:ro'
+      - '/var/run/docker.sock:/var/run/docker.sock:ro'
+      - '/var/log:/var/log:ro'
+    command: -config.file=/etc/promtail/promtail-config.yml
+    networks: ['ops-logging']
+    labels:
+      - loki_scope=infra
   ops-prom-prometheus:
     image: prom/prometheus:latest
     container_name: ops-prometheus
@@ -21,7 +44,9 @@ services:
     volumes:
       - './config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml'
       - './data/prometheus:/prometheus'
-    networks: ['app-monitoring']
+    networks: ['ops-monitoring']
+    labels:
+      - loki_scope=infra
   ops-prom-node-exporter:
     image: prom/node-exporter:latest
     container_name: ops-prometheus-node-exporter
@@ -36,8 +61,30 @@ services:
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     ports:
       - '9992:9100'
-    networks: ['app-monitoring']
+    networks: ['ops-monitoring']
+    labels:
+      - loki_scope=infra
+
+  log-tester:
+    image: alpine:3.20
+    container_name: ops-log-tester
+    command: >
+      sh -c '
+        i=0;
+        while true; do
+          echo "$(date -Iseconds) level=INFO service=log-tester msg=\"hello from log-tester\" count=$i";
+          i=$((i+1));
+          sleep 2;
+        done
+      '
+    restart: unless-stopped
+    networks: ['ops-logging']
+    labels:
+      - loki_scope=infra
+
 
 networks:
-  app-monitoring:
+  ops-monitoring:
+    driver: bridge
+  ops-logging:
     driver: bridge

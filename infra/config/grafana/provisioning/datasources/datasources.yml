@@ -14,3 +14,12 @@ datasources:
       prometheusType: Prometheus
       queryTimeout: 10s
       timeInterval: 10s
+  - name: Loki
+    type: loki
+    access: proxy
+    orgId: 1
+    url: http://ops-loki:3100
+    basicAuth: false
+    isDefault: false
+    version: 1
+    editable: false
